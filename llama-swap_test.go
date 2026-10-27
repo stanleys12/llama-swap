@@ -89,3 +89,26 @@ models:
 	assert.NotEmpty(t, buf.String())
 	assert.Contains(t, buf.String(), "config is valid")
 }
+
+func TestListenURL_Formatting(t *testing.T) {
+	tests := []struct {
+		scheme string
+		addr   string
+		want   string
+	}{
+		{"http", ":8080", "http://localhost:8080"},
+		{"https", ":8443", "https://localhost:8443"},
+		{"http", "0.0.0.0:8080", "http://localhost:8080"},
+		{"http", "[::]:8080", "http://localhost:8080"},
+		{"http", "127.0.0.1:9999", "http://127.0.0.1:9999"},
+		{"http", "localhost:80", "http://localhost"},
+		{"https", ":443", "https://localhost"},
+		{"http", ":443", "http://localhost:443"},
+		{"http", "[::1]:8080", "http://[::1]:8080"},
+		{"https", "[::1]:443", "https://[::1]"},
+		{"http", "bad-addr", "http://bad-addr"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, listenURL(tt.scheme, tt.addr), tt.scheme+" "+tt.addr)
+	}
+}

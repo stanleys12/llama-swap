@@ -101,6 +101,21 @@ func loadTailcatListenerKey(keyPath string, enabled bool) (*tailcat.PrivateKey, 
 	return privateKey, nil
 }
 
+func listenURL(scheme, listenAddr string) string {
+	host, port, err := net.SplitHostPort(listenAddr)
+	if err != nil {
+		return scheme + "://" + listenAddr
+	}
+	if ip := net.ParseIP(host); host == "" || (ip != nil && ip.IsUnspecified()) {
+		host = "localhost"
+	}
+	hostPort := net.JoinHostPort(host, port)
+	if (scheme == "http" && port == "80") || (scheme == "https" && port == "443") {
+		hostPort = strings.TrimSuffix(hostPort, ":"+port)
+	}
+	return scheme + "://" + hostPort
+}
+
 // runValidate loads the configuration from the given sources and prints a
 // short human-readable result to out. It returns 0 when the config loads
 // without error and 1 otherwise. It does not start the server, detect
@@ -453,10 +468,10 @@ func main() {
 	go func() {
 		var startErr error
 		if useTLS {
-			proxyLog.Infof("llama-swap listening with TLS on https://%s", listenAddr)
+			proxyLog.Infof("llama-swap listening with TLS on %s", listenURL("https", listenAddr))
 			startErr = httpServer.ListenAndServeTLS(*flagCertFile, *flagKeyFile)
 		} else {
-			proxyLog.Infof("llama-swap listening on http://%s", listenAddr)
+			proxyLog.Infof("llama-swap listening on %s", listenURL("http", listenAddr))
 			startErr = httpServer.ListenAndServe()
 		}
 		if startErr != nil && !errors.Is(startErr, http.ErrServerClosed) {
